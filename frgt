@@ -1,0 +1,43 @@
+<?php
+// Connexion à la base de données
+$pdo = new PDO('mysql:host=localhost;dbname=ma_base_de_donnees', 'utilisateur', 'mot_de_passe');
+
+// Récupération des valeurs de recherche depuis le formulaire
+$search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+// Séparation des termes de recherche par des virgules
+$searchTerms = explode(',', $search);
+
+// Construction de la requête SQL avec une clause WHERE dynamique
+$sql = "SELECT nom, prenom, date_naissance FROM ma_table WHERE ";
+$whereClause = "";
+$bindParamValues = array();
+
+foreach ($searchTerms as $index => $term) {
+    // Ajout d'un paramètre lié à la clause WHERE pour chaque terme de recherche
+    $whereClause .= "nom LIKE :term{$index} OR prenom LIKE :term{$index} OR date_naissance LIKE :term{$index} OR ";
+    $bindParamValues[":term{$index}"] = "%{$term}%";
+}
+
+// Suppression de la dernière occurrence de " OR " dans la clause WHERE
+$whereClause = rtrim($whereClause, " OR ");
+
+// Ajout de la clause WHERE à la requête SQL
+$sql .= $whereClause;
+
+// Préparation de la requête SQL
+$stmt = $pdo->prepare($sql);
+
+// Affectation des valeurs aux paramètres de la requête
+foreach ($bindParamValues as $param => $value) {
+    $stmt->bindParam($param, $value);
+}
+
+// Exécution de la requête
+$stmt->execute();
+
+// Affichage des résultats de la recherche
+while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+    echo "{$row['nom']} {$row['prenom']} (né(e) le {$row['date_naissance']})<br/>";
+}
+?>
